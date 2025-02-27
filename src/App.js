@@ -20,8 +20,7 @@ function App() {
         if (type === "SPF") {
           queries.push({ queryDomain: domain, queryType: "TXT" }); 
         } else if (type === "DKIM") {
-          // Step 1: Fetch all TXT records to find DKIM selectors dynamically
-          let dkimSelectors = ["dkim", "google", "selector1", "selector2"]; // Common selectors
+          let dkimSelectors = ["dkim", "google", "selector1", "selector2"];
 
           try {
             const response = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
@@ -41,11 +40,9 @@ function App() {
             console.error("Error fetching DKIM selectors:", error);
           }
 
-          // Step 2: Query DKIM records for all found selectors
           dkimSelectors.forEach(selector => {
             queries.push({ queryDomain: `${selector}._domainkey.${domain}`, queryType: "TXT" });
           });
-
         } else if (type === "DMARC") {
           queries.push({ queryDomain: `_dmarc.${domain}`, queryType: "TXT" });
         } else {
@@ -73,7 +70,7 @@ function App() {
     } else {
       alert("Please enter a domain name.");
     }
-  };  
+  };
 
   const renderRecordDetails = () => {
     if (result?.Answer) {
@@ -81,6 +78,7 @@ function App() {
       const isSpfRecord = recordType === "SPF";
       const isDkimRecord = recordType === "DKIM";
       const isDmarcRecord = recordType === "DMARC";
+      const isCnameRecord = recordType === "CNAME";
 
       return (
         <table>
@@ -95,7 +93,7 @@ function App() {
           </thead>
           <tbody>
             {result.Answer.map((record, index) => {
-              const recordData = (isSpfRecord || isDkimRecord || isDmarcRecord) 
+              const recordData = (isSpfRecord || isDkimRecord || isDmarcRecord || isCnameRecord) 
                 ? record.data 
                 : record.data;
               return (
@@ -121,6 +119,7 @@ function App() {
   const getTypeName = (type) => {
     switch(type) {
       case 1: return "A";
+      case 5: return "CNAME";
       case 15: return "MX";
       case 16: return "TXT";
       case 2: return "NS";
@@ -152,6 +151,7 @@ function App() {
         <button onClick={() => handleRecordTypeClick("DMARC")}>DMARC</button>
         <button onClick={() => handleRecordTypeClick("AAAA")}>AAAA</button>
         <button onClick={() => handleRecordTypeClick("DKIM")}>DKIM</button>
+        <button onClick={() => handleRecordTypeClick("CNAME")}>CNAME</button>
       </div>
       <div className="result">
         <h2>Result for {recordType} record:</h2>
