@@ -70,7 +70,7 @@ function App() {
     } else {
       alert("Please enter a domain name.");
     }
-  };
+  };  
 
   const renderRecordDetails = () => {
     if (result?.Answer) {
@@ -119,11 +119,11 @@ function App() {
   const getTypeName = (type) => {
     switch(type) {
       case 1: return "A";
-      case 5: return "CNAME";
       case 15: return "MX";
       case 16: return "TXT";
       case 2: return "NS";
       case 28: return "AAAA";
+      case 5: return "CNAME";
       default: return type;
     }
   };
