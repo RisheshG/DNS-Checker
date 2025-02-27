@@ -19,11 +19,36 @@ function App() {
   
         if (type === "SPF") {
           queries.push({ queryDomain: domain, queryType: "TXT" }); // SPF records are in TXT format
-        } else if (type === "DKIM") {
-          queries.push(
-            { queryDomain: `dkim._domainkey.${domain}`, queryType: "TXT" }, // DKIM record for `dkim` selector
-            { queryDomain: `google._domainkey.${domain}`, queryType: "TXT" }  // DKIM record for `google` selector
-          );
+        } } else if (type === "DKIM") {
+  try {
+    // Step 1: Fetch all TXT records for the domain
+    const response = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
+    const data = await response.json();
+
+    let dkimSelectors = [];
+
+    if (data.Answer) {
+      data.Answer.forEach((record) => {
+        if (record.data.includes("v=DKIM1")) {
+          const match = record.name.match(/([^\.]+)\._domainkey\./);
+          if (match) {
+            dkimSelectors.push(match[1]);
+          }
+        }
+      });
+    }
+
+    // Step 2: Add common DKIM selectors
+    dkimSelectors.push("dkim", "google", "selector1", "selector2");
+
+    // Step 3: Fetch DKIM records for all selectors found
+    for (const selector of dkimSelectors) {
+      queries.push({ queryDomain: `${selector}._domainkey.${domain}`, queryType: "TXT" });
+    }
+  } catch (error) {
+    console.error("Error fetching DKIM selectors:", error);
+  }
+}
         } else if (type === "DMARC") {
           queries.push({ queryDomain: `_dmarc.${domain}`, queryType: "TXT" }); // DMARC records are in TXT format
         } else {
