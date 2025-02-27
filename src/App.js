@@ -16,41 +16,38 @@ function App() {
     if (domain) {
       try {
         let queries = [];
-  
+
         if (type === "SPF") {
-          queries.push({ queryDomain: domain, queryType: "TXT" }); // SPF records are in TXT format
-        } } else if (type === "DKIM") {
-  try {
-    // Step 1: Fetch all TXT records for the domain
-    const response = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
-    const data = await response.json();
+          queries.push({ queryDomain: domain, queryType: "TXT" }); 
+        } else if (type === "DKIM") {
+          // Step 1: Fetch all TXT records to find DKIM selectors dynamically
+          let dkimSelectors = ["dkim", "google", "selector1", "selector2"]; // Common selectors
 
-    let dkimSelectors = [];
+          try {
+            const response = await fetch(`https://dns.google/resolve?name=${domain}&type=TXT`);
+            const data = await response.json();
 
-    if (data.Answer) {
-      data.Answer.forEach((record) => {
-        if (record.data.includes("v=DKIM1")) {
-          const match = record.name.match(/([^\.]+)\._domainkey\./);
-          if (match) {
-            dkimSelectors.push(match[1]);
+            if (data.Answer) {
+              data.Answer.forEach((record) => {
+                if (record.data.includes("v=DKIM1")) {
+                  const match = record.name.match(/([^\.]+)\._domainkey\./);
+                  if (match) {
+                    dkimSelectors.push(match[1]);
+                  }
+                }
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching DKIM selectors:", error);
           }
-        }
-      });
-    }
 
-    // Step 2: Add common DKIM selectors
-    dkimSelectors.push("dkim", "google", "selector1", "selector2");
+          // Step 2: Query DKIM records for all found selectors
+          dkimSelectors.forEach(selector => {
+            queries.push({ queryDomain: `${selector}._domainkey.${domain}`, queryType: "TXT" });
+          });
 
-    // Step 3: Fetch DKIM records for all selectors found
-    for (const selector of dkimSelectors) {
-      queries.push({ queryDomain: `${selector}._domainkey.${domain}`, queryType: "TXT" });
-    }
-  } catch (error) {
-    console.error("Error fetching DKIM selectors:", error);
-  }
-}
         } else if (type === "DMARC") {
-          queries.push({ queryDomain: `_dmarc.${domain}`, queryType: "TXT" }); // DMARC records are in TXT format
+          queries.push({ queryDomain: `_dmarc.${domain}`, queryType: "TXT" });
         } else {
           queries.push({ queryDomain: domain, queryType: type });
         }
@@ -64,7 +61,6 @@ function App() {
           }
         }
   
-        // Check if results are empty and set the appropriate result
         if (results.length === 0) {
           setResult({ error: "Record not found." });
         } else {
